@@ -106,49 +106,35 @@ class LoadImageFolder:
         
         # Concatenate all images from the folder
         if len(all_output_images) > 1:
-            # Find the largest dimensions among all images
-            max_height = max(img.shape[1] for img in all_output_images)
-            max_width = max(img.shape[2] for img in all_output_images)
+            # Start with the first image
+            final_image = all_output_images[0]
+            final_mask = all_output_masks[0]
             
-            print(f"Resizing all images to largest size: {max_width}x{max_height}")
-            
-            # Resize all images to match the largest dimensions
-            resized_images = []
-            resized_masks = []
-            
-            for img, mask in zip(all_output_images, all_output_masks):
-                # Check if resizing is needed
-                if img.shape[1] != max_height or img.shape[2] != max_width:
-                    # Resize image using ComfyUI's upscale function
-                    img_resized = comfy.utils.common_upscale(
+            # Concatenate the rest, resizing as needed
+            for img, mask in zip(all_output_images[1:], all_output_masks[1:]):
+                # Resize image if dimensions don't match
+                if img.shape[1:] != final_image.shape[1:]:
+                    img = comfy.utils.common_upscale(
                         img.movedim(-1, 1), 
-                        max_width, 
-                        max_height, 
+                        final_image.shape[2], 
+                        final_image.shape[1], 
                         "lanczos", 
                         "center"
                     ).movedim(1, -1)
-                    
-                    # Resize mask to match
-                    if mask.shape[1] != max_height or mask.shape[2] != max_width:
-                        mask_resized = comfy.utils.common_upscale(
-                            mask.unsqueeze(1), 
-                            max_height, 
-                            max_width, 
-                            "lanczos", 
-                            "center"
-                        ).squeeze(1)
-                    else:
-                        mask_resized = mask
-                    
-                    resized_images.append(img_resized)
-                    resized_masks.append(mask_resized)
-                else:
-                    # Image already at max size, no resizing needed
-                    resized_images.append(img)
-                    resized_masks.append(mask)
-            
-            final_image = torch.cat(resized_images, dim=0)
-            final_mask = torch.cat(resized_masks, dim=0)
+                
+                # Resize mask if dimensions don't match
+                if mask.shape[1:] != final_mask.shape[1:]:
+                    mask = comfy.utils.common_upscale(
+                        mask.unsqueeze(1), 
+                        final_mask.shape[1], 
+                        final_mask.shape[2], 
+                        "lanczos", 
+                        "center"
+                    ).squeeze(1)
+                
+                # Concatenate
+                final_image = torch.cat((final_image, img), dim=0)
+                final_mask = torch.cat((final_mask, mask), dim=0)
         else:
             final_image = all_output_images[0]
             final_mask = all_output_masks[0]

@@ -2,7 +2,7 @@
 Custom ComfyUI Nodes
 """
 
-from .nodes.loadImageFolder import LoadImageFolder
+from .nodes.LoadImageFolder import LoadImageFolder
 from .nodes.MakeBatchFromSingleImage import MakeBatchFromSingleImage
 
 # Combine all node mappings
